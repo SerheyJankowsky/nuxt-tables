@@ -64,8 +64,9 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
           return true;
         }
 
-        if (column.filterFn) {
-          return column.filterFn(row, filterValue, column);
+        const customFilterFunction = column.filterFunction ?? column.filterFn;
+        if (customFilterFunction) {
+          return true;
         }
 
         const candidate = resolveColumnValue(
@@ -89,8 +90,14 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
       return filteredRows.value;
     }
 
-    const directionMultiplier = sortState.value.direction === "asc" ? 1 : -1;
+    const sortDirection = sortState.value.direction;
+    const directionMultiplier = sortDirection === "asc" ? 1 : -1;
     const accessor = activeColumn.sortKey ?? activeColumn.key;
+    const customSortFunction = activeColumn.sortFunction;
+
+    if (customSortFunction) {
+      return filteredRows.value;
+    }
 
     return [...filteredRows.value].sort((leftRow, rightRow) => {
       const leftValue = resolveColumnValue(leftRow, accessor);
@@ -269,19 +276,64 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
 
     if (!sortState.value || sortState.value.key !== column.key) {
       sortState.value = { key: column.key, direction: "asc" };
+      if (column.sortFunction) {
+        options.onManualSortChange?.({
+          columnKey: column.key,
+          direction: "asc",
+          column,
+          rows: [...options.rows.value],
+          filters: { ...filters.value },
+        });
+      }
       return;
     }
 
     if (sortState.value.direction === "asc") {
       sortState.value = { key: column.key, direction: "desc" };
+      if (column.sortFunction) {
+        options.onManualSortChange?.({
+          columnKey: column.key,
+          direction: "desc",
+          column,
+          rows: [...options.rows.value],
+          filters: { ...filters.value },
+        });
+      }
       return;
     }
 
     sortState.value = null;
+    if (column.sortFunction) {
+      options.onManualSortChange?.({
+        columnKey: column.key,
+        direction: null,
+        column,
+        rows: [...options.rows.value],
+        filters: { ...filters.value },
+      });
+    }
   }
 
   function setFilter(columnKey: string, value: unknown) {
     filters.value[columnKey] = value;
+
+    const column = columnsByKey.value.get(columnKey);
+    if (!column) {
+      return;
+    }
+
+    const customFilterFunction = column.filterFunction ?? column.filterFn;
+    if (!customFilterFunction) {
+      return;
+    }
+
+    options.onManualFilterChange?.({
+      columnKey,
+      value,
+      column,
+      rows: [...options.rows.value],
+      filters: { ...filters.value },
+    });
   }
 
   function toggleColumn(columnKey: string) {

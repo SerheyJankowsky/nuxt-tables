@@ -5,6 +5,8 @@ import type {
   NuxtTableClassNames,
   NuxtTableColumn,
   NuxtTableColumnOrderChange,
+  NuxtTableManualFilterChange,
+  NuxtTableManualSortChange,
   TableRow,
 } from "../types/table";
 
@@ -33,6 +35,8 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   columnOrderChange: [payload: NuxtTableColumnOrderChange];
+  manualSortChange: [payload: NuxtTableManualSortChange];
+  manualFilterChange: [payload: NuxtTableManualFilterChange];
 }>();
 
 const defaultClassNames: NuxtTableClassNames = {
@@ -96,6 +100,12 @@ const {
   enableColumnDnd: toRef(props, "enableColumnDnd"),
   onColumnOrderChange: (payload) => {
     emit("columnOrderChange", payload);
+  },
+  onManualSortChange: (payload) => {
+    emit("manualSortChange", payload);
+  },
+  onManualFilterChange: (payload) => {
+    emit("manualFilterChange", payload);
   },
 });
 

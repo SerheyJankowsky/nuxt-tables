@@ -12,12 +12,26 @@ export interface NuxtTableColumn {
   sortDescComponent?: Component;
   sortDefaultComponent?: Component;
   sortKey?: ValueResolver;
+  sortFunction?: (
+    leftRow: TableRow,
+    rightRow: TableRow,
+    column: NuxtTableColumn,
+    tableRows: TableRow[],
+    direction: "asc" | "desc",
+  ) => number;
   filterKey?: ValueResolver;
   formatter?: (value: unknown, row: TableRow) => string;
+  filterFunction?: (
+    row: TableRow,
+    filterValue: unknown,
+    column: NuxtTableColumn,
+    tableRows: TableRow[],
+  ) => boolean;
   filterFn?: (
     row: TableRow,
     filterValue: unknown,
     column: NuxtTableColumn,
+    tableRows: TableRow[],
   ) => boolean;
   cellComponent?: Component;
   filterComponent?: Component;
@@ -30,6 +44,22 @@ export interface NuxtTableColumnOrderChange {
   movedKey: string;
   fromIndex: number;
   toIndex: number;
+}
+
+export interface NuxtTableManualSortChange {
+  columnKey: string;
+  direction: "asc" | "desc" | null;
+  column: NuxtTableColumn;
+  rows: TableRow[];
+  filters: Record<string, unknown>;
+}
+
+export interface NuxtTableManualFilterChange {
+  columnKey: string;
+  value: unknown;
+  column: NuxtTableColumn;
+  rows: TableRow[];
+  filters: Record<string, unknown>;
 }
 
 export interface NuxtTableClassNames {
@@ -65,4 +95,6 @@ export interface UseNuxtTableOptions {
   rowKey: Ref<string | ((row: TableRow, index: number) => string | number)>;
   enableColumnDnd: Ref<boolean>;
   onColumnOrderChange?: (payload: NuxtTableColumnOrderChange) => void;
+  onManualSortChange?: (payload: NuxtTableManualSortChange) => void;
+  onManualFilterChange?: (payload: NuxtTableManualFilterChange) => void;
 }
