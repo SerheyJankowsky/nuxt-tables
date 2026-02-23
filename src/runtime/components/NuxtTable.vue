@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { computed, getCurrentInstance, toRef } from "vue";
+import {
+  computed,
+  getCurrentInstance,
+  onBeforeUpdate,
+  shallowRef,
+  toRef,
+} from "vue";
 import { useNuxtTable } from "../composables/useNuxtTable";
 import type {
   NuxtTableClassNames,
@@ -39,15 +45,22 @@ const emit = defineEmits<{
   manualFilterChange: [payload: NuxtTableManualFilterChange];
 }>();
 const instance = getCurrentInstance();
+const vnodeProps = shallowRef<Record<string, unknown> | null>(
+  (instance?.vnode.props as Record<string, unknown> | null | undefined) ?? null,
+);
+
+onBeforeUpdate(() => {
+  vnodeProps.value =
+    (instance?.vnode.props as Record<string, unknown> | null | undefined) ??
+    null;
+});
 
 const hasManualSortChangeListener = computed(() => {
-  const vnodeProps = instance?.vnode.props;
-  return Boolean(vnodeProps?.onManualSortChange);
+  return Boolean(vnodeProps.value?.onManualSortChange);
 });
 
 const hasManualFilterChangeListener = computed(() => {
-  const vnodeProps = instance?.vnode.props;
-  return Boolean(vnodeProps?.onManualFilterChange);
+  return Boolean(vnodeProps.value?.onManualFilterChange);
 });
 
 const defaultClassNames: NuxtTableClassNames = {
@@ -109,19 +122,17 @@ const {
   storageKey: toRef(props, "storageKey"),
   rowKey: toRef(props, "rowKey"),
   enableColumnDnd: toRef(props, "enableColumnDnd"),
+  isManualSortMode: hasManualSortChangeListener,
+  isManualFilterMode: hasManualFilterChangeListener,
   onColumnOrderChange: (payload) => {
     emit("columnOrderChange", payload);
   },
-  onManualSortChange: hasManualSortChangeListener.value
-    ? (payload) => {
-        emit("manualSortChange", payload);
-      }
-    : undefined,
-  onManualFilterChange: hasManualFilterChangeListener.value
-    ? (payload) => {
-        emit("manualFilterChange", payload);
-      }
-    : undefined,
+  onManualSortChange: (payload) => {
+    emit("manualSortChange", payload);
+  },
+  onManualFilterChange: (payload) => {
+    emit("manualFilterChange", payload);
+  },
 });
 
 const displayedColumns = computed(() => {
@@ -131,6 +142,13 @@ const displayedColumns = computed(() => {
 
   const enabledKeySet = new Set(props.enabledColumns);
   return orderedColumns.value.filter((column) => enabledKeySet.has(column.key));
+});
+
+const keyedRows = computed(() => {
+  return sortedRows.value.map((row, rowIndex) => ({
+    row,
+    key: resolveRowKey(row, rowIndex),
+  }));
 });
 </script>
 
@@ -166,22 +184,22 @@ const displayedColumns = computed(() => {
         </thead>
         <tbody :class="mergedClassNames.tableBody">
           <tr
-            v-for="(row, rowIndex) in sortedRows"
-            :key="resolveRowKey(row, rowIndex)"
+            v-for="rowEntry in keyedRows"
+            :key="rowEntry.key"
             :class="mergedClassNames.bodyRow"
           >
             <NuxtTableBodyCell
               v-for="column in displayedColumns"
-              :key="`${resolveRowKey(row, rowIndex)}-${column.key}`"
-              :row="row"
-              :row-key="resolveRowKey(row, rowIndex)"
+              :key="`${rowEntry.key}-${column.key}`"
+              :row="rowEntry.row"
+              :row-key="rowEntry.key"
               :column="column"
-              :value="resolveDisplayValue(row, column)"
+              :value="resolveDisplayValue(rowEntry.row, column)"
               :column-style="getColumnStyle(column.key)"
               :class-names="mergedClassNames"
             />
           </tr>
-          <tr v-if="sortedRows.length === 0">
+          <tr v-if="keyedRows.length === 0">
             <td
               :colspan="Math.max(displayedColumns.length, 1)"
               :class="mergedClassNames.emptyCell"

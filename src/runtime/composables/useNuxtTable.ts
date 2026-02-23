@@ -16,6 +16,7 @@ import type {
 } from "../types/table";
 
 const MIN_COLUMN_WIDTH = 140;
+const EMPTY_STYLE: Record<string, string | undefined> = {};
 
 export function useNuxtTable(options: UseNuxtTableOptions) {
   const columnOrder = ref<string[]>([]);
@@ -29,15 +30,26 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
   const hasLoadedPersistence = ref(false);
   const headerElements = ref<Record<string, HTMLTableCellElement | null>>({});
   const columnWidths = ref<Record<string, number>>({});
+  const resolverPathCache = new Map<string, string[]>();
   const activeResize = ref<{
     columnKey: string;
     startX: number;
     startWidth: number;
   } | null>(null);
-  const isManualSortMode = computed(() => Boolean(options.onManualSortChange));
-  const isManualFilterMode = computed(() =>
-    Boolean(options.onManualFilterChange),
-  );
+  const isManualSortMode = computed(() => {
+    if (options.isManualSortMode) {
+      return options.isManualSortMode.value;
+    }
+
+    return Boolean(options.onManualSortChange);
+  });
+  const isManualFilterMode = computed(() => {
+    if (options.isManualFilterMode) {
+      return options.isManualFilterMode.value;
+    }
+
+    return Boolean(options.onManualFilterChange);
+  });
 
   const availableColumnKeys = computed(() =>
     options.columns.value.map((column) => column.key),
@@ -54,33 +66,79 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
   });
 
   const visibleColumns = computed(() => {
+    const enabledKeySet = new Set(enabledColumnKeys.value);
     return orderedColumns.value.filter((column) =>
-      enabledColumnKeys.value.includes(column.key),
+      enabledKeySet.has(column.key),
     );
   });
 
+  const activeTextFilters = computed(() => {
+    if (isManualFilterMode.value) {
+      return [] as Array<{
+        key: string;
+        resolver: ValueResolver;
+        filterText: string;
+      }>;
+    }
+
+    const nextFilters: Array<{
+      key: string;
+      resolver: ValueResolver;
+      filterText: string;
+    }> = [];
+
+    for (const column of orderedColumns.value) {
+      const filterValue = filters.value[column.key];
+      if (!isFilterActive(filterValue)) {
+        continue;
+      }
+
+      nextFilters.push({
+        key: column.key,
+        resolver: column.filterKey ?? column.key,
+        filterText: String(filterValue ?? "").toLowerCase(),
+      });
+    }
+
+    return nextFilters;
+  });
+
   const filteredRows = computed(() => {
+    if (isManualFilterMode.value) {
+      return options.rows.value;
+    }
+
+    const activeFilters = activeTextFilters.value;
+    if (activeFilters.length === 0) {
+      return options.rows.value;
+    }
+
     return options.rows.value.filter((row) => {
-      return orderedColumns.value.every((column) => {
-        const filterValue = filters.value[column.key];
-
-        if (!isFilterActive(filterValue)) {
-          return true;
-        }
-
-        if (isManualFilterMode.value) {
-          return true;
-        }
-
-        const candidate = resolveColumnValue(
-          row,
-          column.filterKey ?? column.key,
-        );
+      return activeFilters.every(({ resolver, filterText }) => {
+        const candidate = resolveColumnValue(row, resolver);
         const candidateText = String(candidate ?? "").toLowerCase();
-        const filterText = String(filterValue ?? "").toLowerCase();
         return candidateText.includes(filterText);
       });
     });
+  });
+
+  const columnStylesByKey = computed(() => {
+    const styles: Record<string, Record<string, string>> = {};
+
+    for (const [columnKey, width] of Object.entries(columnWidths.value)) {
+      if (!width) {
+        continue;
+      }
+
+      const safeWidth = Math.max(MIN_COLUMN_WIDTH, width);
+      const widthPx = `${safeWidth}px`;
+      styles[columnKey] = {
+        width: widthPx,
+        minWidth: widthPx,
+      };
+    }
+
+    return styles;
   });
 
   const sortedRows = computed(() => {
@@ -113,13 +171,9 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
     hasLoadedPersistence.value = true;
   });
 
-  watch(
-    () => options.columns.value,
-    () => {
-      initializeColumnState();
-    },
-    { deep: true },
-  );
+  watch(availableColumnKeys, () => {
+    initializeColumnState();
+  });
 
   watch(
     [columnOrder, enabledColumnKeys, columnWidths],
@@ -158,7 +212,8 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
       const keptKeys = columnOrder.value.filter((key) =>
         currentKeySet.has(key),
       );
-      const newKeys = currentKeys.filter((key) => !keptKeys.includes(key));
+      const keptKeySet = new Set(keptKeys);
+      const newKeys = currentKeys.filter((key) => !keptKeySet.has(key));
       columnOrder.value = [...keptKeys, ...newKeys];
     }
 
@@ -169,8 +224,9 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
       const keptEnabledKeys = enabledColumnKeys.value.filter((key) =>
         currentKeySet.has(key),
       );
+      const keptEnabledKeySet = new Set(keptEnabledKeys);
       const missingEnabledKeys = currentKeys.filter(
-        (key) => !keptEnabledKeys.includes(key),
+        (key) => !keptEnabledKeySet.has(key),
       );
       enabledColumnKeys.value = [...keptEnabledKeys, ...missingEnabledKeys];
     }
@@ -197,21 +253,21 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
     }
 
     try {
+      const availableKeySet = new Set(availableColumnKeys.value);
+
       const persistedOrder = localStorage.getItem(buildStorageKey("order"));
       if (persistedOrder) {
         const parsedOrder = JSON.parse(persistedOrder);
         if (Array.isArray(parsedOrder)) {
           const validPersistedOrder = parsedOrder.filter(
             (key: unknown): key is string => {
-              return (
-                typeof key === "string" &&
-                availableColumnKeys.value.includes(key)
-              );
+              return typeof key === "string" && availableKeySet.has(key);
             },
           );
 
+          const validPersistedOrderSet = new Set(validPersistedOrder);
           const missingKeys = availableColumnKeys.value.filter(
-            (key) => !validPersistedOrder.includes(key),
+            (key) => !validPersistedOrderSet.has(key),
           );
           columnOrder.value = [...validPersistedOrder, ...missingKeys];
         }
@@ -225,10 +281,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
         if (Array.isArray(parsedEnabledColumns)) {
           enabledColumnKeys.value = parsedEnabledColumns.filter(
             (key: unknown): key is string => {
-              return (
-                typeof key === "string" &&
-                availableColumnKeys.value.includes(key)
-              );
+              return typeof key === "string" && availableKeySet.has(key);
             },
           );
         }
@@ -337,7 +390,8 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
   }
 
   function toggleColumn(columnKey: string) {
-    if (enabledColumnKeys.value.includes(columnKey)) {
+    const enabledKeySet = new Set(enabledColumnKeys.value);
+    if (enabledKeySet.has(columnKey)) {
       if (enabledColumnKeys.value.length === 1) {
         return;
       }
@@ -431,16 +485,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
   }
 
   function getColumnStyle(columnKey: string) {
-    const width = columnWidths.value[columnKey];
-    if (!width) {
-      return {};
-    }
-
-    const safeWidth = Math.max(MIN_COLUMN_WIDTH, width);
-    return {
-      width: `${safeWidth}px`,
-      minWidth: `${safeWidth}px`,
-    };
+    return columnStylesByKey.value[columnKey] ?? EMPTY_STYLE;
   }
 
   function startColumnResize(event: MouseEvent, columnKey: string) {
@@ -473,10 +518,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
       MIN_COLUMN_WIDTH,
       Math.round(activeResize.value.startWidth + delta),
     );
-    columnWidths.value = {
-      ...columnWidths.value,
-      [activeResize.value.columnKey]: nextWidth,
-    };
+    columnWidths.value[activeResize.value.columnKey] = nextWidth;
   }
 
   function onColumnResizeEnd() {
@@ -565,7 +607,12 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
       return resolver(row);
     }
 
-    const pathParts = resolver.split(".");
+    const cachedPath = resolverPathCache.get(resolver);
+    const pathParts = cachedPath ?? resolver.split(".");
+    if (!cachedPath) {
+      resolverPathCache.set(resolver, pathParts);
+    }
+
     let currentValue: any = row;
     for (const pathPart of pathParts) {
       if (currentValue == null) {

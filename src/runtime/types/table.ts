@@ -75,6 +75,8 @@ export interface UseNuxtTableOptions {
   storageKey: Ref<string>;
   rowKey: Ref<string | ((row: TableRow, index: number) => string | number)>;
   enableColumnDnd: Ref<boolean>;
+  isManualSortMode?: Ref<boolean>;
+  isManualFilterMode?: Ref<boolean>;
   onColumnOrderChange?: (payload: NuxtTableColumnOrderChange) => void;
   onManualSortChange?: (payload: NuxtTableManualSortChange) => void;
   onManualFilterChange?: (payload: NuxtTableManualFilterChange) => void;
