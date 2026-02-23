@@ -1,6 +1,6 @@
 {
   "name": "@serhiitupilow/nuxt-table",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Nuxt module with a functional table component (sorting, filtering, column visibility, resize, optional DnD)",
   "type": "module",
   "license": "MIT",
