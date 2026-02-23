@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRef, useAttrs } from "vue";
+import { computed, getCurrentInstance, toRef } from "vue";
 import { useNuxtTable } from "../composables/useNuxtTable";
 import type {
   NuxtTableClassNames,
@@ -38,14 +38,16 @@ const emit = defineEmits<{
   manualSortChange: [payload: NuxtTableManualSortChange];
   manualFilterChange: [payload: NuxtTableManualFilterChange];
 }>();
-const attrs = useAttrs();
+const instance = getCurrentInstance();
 
 const hasManualSortChangeListener = computed(() => {
-  return Boolean(attrs.onManualSortChange);
+  const vnodeProps = instance?.vnode.props;
+  return Boolean(vnodeProps?.onManualSortChange);
 });
 
 const hasManualFilterChangeListener = computed(() => {
-  return Boolean(attrs.onManualFilterChange);
+  const vnodeProps = instance?.vnode.props;
+  return Boolean(vnodeProps?.onManualFilterChange);
 });
 
 const defaultClassNames: NuxtTableClassNames = {
