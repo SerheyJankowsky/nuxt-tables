@@ -1,0 +1,39 @@
+{
+  "name": "nuxt-table",
+  "version": "0.1.0",
+  "description": "Nuxt module with a functional table component (sorting, filtering, column visibility, resize, optional DnD)",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/module.mjs",
+  "types": "./dist/types.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/types.d.mts",
+      "import": "./dist/module.mjs"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "nuxt-module-build build",
+    "dev": "nuxt-module-build dev",
+    "prepack": "nuxt-module-build build"
+  },
+  "peerDependencies": {
+    "nuxt": ">=3.11.0",
+    "vue": ">=3.4.0"
+  },
+  "devDependencies": {
+    "@nuxt/kit": "^4.3.1",
+    "@nuxt/module-builder": "^1.0.2",
+    "nuxt": "^4.3.1",
+    "typescript": "^5.9.3",
+    "vue": "^3.5.28",
+    "vue-tsc": "^3.2.5"
+  }
+}
