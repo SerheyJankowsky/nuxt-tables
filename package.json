@@ -1,5 +1,5 @@
 {
-  "name": "nuxt-table",
+  "name": "@serhiitupilow/nuxt-table",
   "version": "0.1.2",
   "description": "Nuxt module with a functional table component (sorting, filtering, column visibility, resize, optional DnD)",
   "type": "module",
@@ -19,6 +19,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "nuxt-module-build build",
     "dev": "nuxt-module-build dev",

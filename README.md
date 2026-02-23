@@ -1,4 +1,4 @@
-# nuxt-table
+# @serhiitupilow/nuxt-table
 
 Nuxt module that provides a single `NuxtTable` component with:
 
@@ -14,58 +14,58 @@ Nuxt module that provides a single `NuxtTable` component with:
 Use any package manager:
 
 ```bash
-npm i nuxt-table
+npm i @serhiitupilow/nuxt-table
 # or
-yarn add nuxt-table
+yarn add @serhiitupilow/nuxt-table
 # or
-bun add nuxt-table
+bun add @serhiitupilow/nuxt-table
 # or
-pnpm add nuxt-table
+pnpm add @serhiitupilow/nuxt-table
 ```
 
 ## Nuxt config
 
 ```ts
 export default defineNuxtConfig({
-  modules: ['nuxt-table'],
-})
+  modules: ["@serhiitupilow/nuxt-table"],
+});
 ```
 
 Optional module config:
 
 ```ts
 export default defineNuxtConfig({
-  modules: ['nuxt-table'],
+  modules: ["@serhiitupilow/nuxt-table"],
   nuxtTable: {
     injectDefaultStyles: true,
   },
-})
+});
 ```
 
 ## Usage
 
 ```vue
 <script setup lang="ts">
-import type { NuxtTableColumn } from 'nuxt-table/dist/runtime/types/table'
+import type { NuxtTableColumn } from "@serhiitupilow/nuxt-table/dist/runtime/types/table";
 
 const columns: NuxtTableColumn[] = [
-  { key: 'id', label: 'ID', sortable: true, filterable: true },
-  { key: 'name', label: 'Name', sortable: true, filterable: true },
-  { key: 'status', label: 'Status', sortable: true, filterable: true },
-]
+  { key: "id", label: "ID", sortable: true, filterable: true },
+  { key: "name", label: "Name", sortable: true, filterable: true },
+  { key: "status", label: "Status", sortable: true, filterable: true },
+];
 
 const rows = [
-  { id: 1, name: 'Alice', status: 'active' },
-  { id: 2, name: 'Bob', status: 'paused' },
-]
+  { id: 1, name: "Alice", status: "active" },
+  { id: 2, name: "Bob", status: "paused" },
+];
 
 function onColumnOrderChange(payload: {
-  order: string[]
-  movedKey: string
-  fromIndex: number
-  toIndex: number
+  order: string[];
+  movedKey: string;
+  fromIndex: number;
+  toIndex: number;
 }) {
-  console.log('new order', payload.order)
+  console.log("new order", payload.order);
 }
 </script>
 
