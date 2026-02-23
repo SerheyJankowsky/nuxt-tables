@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRef } from "vue";
+import { computed, toRef, useAttrs } from "vue";
 import { useNuxtTable } from "../composables/useNuxtTable";
 import type {
   NuxtTableClassNames,
@@ -38,6 +38,15 @@ const emit = defineEmits<{
   manualSortChange: [payload: NuxtTableManualSortChange];
   manualFilterChange: [payload: NuxtTableManualFilterChange];
 }>();
+const attrs = useAttrs();
+
+const hasManualSortChangeListener = computed(() => {
+  return Boolean(attrs.onManualSortChange);
+});
+
+const hasManualFilterChangeListener = computed(() => {
+  return Boolean(attrs.onManualFilterChange);
+});
 
 const defaultClassNames: NuxtTableClassNames = {
   root: "nuxt-table",
@@ -101,12 +110,16 @@ const {
   onColumnOrderChange: (payload) => {
     emit("columnOrderChange", payload);
   },
-  onManualSortChange: (payload) => {
-    emit("manualSortChange", payload);
-  },
-  onManualFilterChange: (payload) => {
-    emit("manualFilterChange", payload);
-  },
+  onManualSortChange: hasManualSortChangeListener.value
+    ? (payload) => {
+        emit("manualSortChange", payload);
+      }
+    : undefined,
+  onManualFilterChange: hasManualFilterChangeListener.value
+    ? (payload) => {
+        emit("manualFilterChange", payload);
+      }
+    : undefined,
 });
 
 const displayedColumns = computed(() => {

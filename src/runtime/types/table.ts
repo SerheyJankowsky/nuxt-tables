@@ -12,27 +12,8 @@ export interface NuxtTableColumn {
   sortDescComponent?: Component;
   sortDefaultComponent?: Component;
   sortKey?: ValueResolver;
-  sortFunction?: (
-    leftRow: TableRow,
-    rightRow: TableRow,
-    column: NuxtTableColumn,
-    tableRows: TableRow[],
-    direction: "asc" | "desc",
-  ) => number;
   filterKey?: ValueResolver;
   formatter?: (value: unknown, row: TableRow) => string;
-  filterFunction?: (
-    row: TableRow,
-    filterValue: unknown,
-    column: NuxtTableColumn,
-    tableRows: TableRow[],
-  ) => boolean;
-  filterFn?: (
-    row: TableRow,
-    filterValue: unknown,
-    column: NuxtTableColumn,
-    tableRows: TableRow[],
-  ) => boolean;
   cellComponent?: Component;
   filterComponent?: Component;
   headerClassName?: string;

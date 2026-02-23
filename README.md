@@ -136,18 +136,18 @@ import {
 
 ### Events
 
-| Event                  | Payload                       | Description                                                                        |
-| ---------------------- | ----------------------------- | ---------------------------------------------------------------------------------- |
-| `column-order-change`  | `NuxtTableColumnOrderChange`  | Emitted after successful drag-and-drop reorder.                                    |
-| `manual-sort-change`   | `NuxtTableManualSortChange`   | Emitted when sorting is changed for a column with `sortFunction`.                  |
-| `manual-filter-change` | `NuxtTableManualFilterChange` | Emitted when filter value changes for a column with `filterFunction` / `filterFn`. |
+| Event                  | Payload                       | Description                                                                         |
+| ---------------------- | ----------------------------- | ----------------------------------------------------------------------------------- |
+| `column-order-change`  | `NuxtTableColumnOrderChange`  | Emitted after successful drag-and-drop reorder.                                     |
+| `manual-sort-change`   | `NuxtTableManualSortChange`   | Emitted when sort state changes and `@manual-sort-change` listener is provided.     |
+| `manual-filter-change` | `NuxtTableManualFilterChange` | Emitted when filter value changes and `@manual-filter-change` listener is provided. |
 
 ### Behavior notes
 
 - Filtering is applied before sorting.
 - Sorting cycles by click: `asc -> desc -> off`.
-- If a column has `filterFunction` / `filterFn`, built-in filtering is disabled for that column and table emits `manual-filter-change`.
-- If a column has `sortFunction`, built-in sorting is disabled for that column and table emits `manual-sort-change`.
+- If `@manual-filter-change` is provided, built-in filtering is disabled.
+- If `@manual-sort-change` is provided, built-in sorting is disabled.
 - Column width has a minimum of `140px`.
 - Empty state text: `No rows match the current filters.`
 - Rendering is table-only (no built-in toolbar/summary controls).
@@ -167,27 +167,8 @@ interface NuxtTableColumn {
   sortDescComponent?: Component;
   sortDefaultComponent?: Component;
   sortKey?: ValueResolver;
-  sortFunction?: (
-    leftRow: TableRow,
-    rightRow: TableRow,
-    column: NuxtTableColumn,
-    tableRows: TableRow[],
-    direction: "asc" | "desc",
-  ) => number;
   filterKey?: ValueResolver;
   formatter?: (value: unknown, row: TableRow) => string;
-  filterFunction?: (
-    row: TableRow,
-    filterValue: unknown,
-    column: NuxtTableColumn,
-    tableRows: TableRow[],
-  ) => boolean;
-  filterFn?: (
-    row: TableRow,
-    filterValue: unknown,
-    column: NuxtTableColumn,
-    tableRows: TableRow[],
-  ) => boolean;
   cellComponent?: Component;
   filterComponent?: Component;
   headerClassName?: string;
@@ -199,12 +180,9 @@ interface NuxtTableColumn {
 
 - `key`: primary accessor path for display value. Supports dot notation through resolvers (for example: `user.profile.name`) when used by `sortKey`/`filterKey`.
 - `sortKey`: alternate accessor/function used for sorting.
-- `sortFunction`: enables manual sort mode for that column. Table emits `manual-sort-change` and does not sort rows automatically.
 - `sortAscComponent` / `sortDescComponent` / `sortDefaultComponent`: optional sort button content per state. If not provided, defaults are `Asc`, `Desc`, and `Sort`.
 - `filterKey`: alternate accessor/function used for default text filtering.
 - `formatter`: transforms display value for default body rendering (`<span>{{ value }}</span>`).
-- `filterFunction`: enables manual filter mode for that column. Table emits `manual-filter-change` and does not filter rows automatically.
-- `filterFn`: legacy alias for `filterFunction` (same manual behavior).
 - `cellComponent`: custom body renderer receives `row`, `column`, and `value`.
 - `filterComponent`: custom header filter renderer receives `modelValue` and `column`, and should emit `update:model-value`.
 
@@ -342,7 +320,7 @@ If these components are not provided, the table automatically uses the default l
 
 ### Detailed `manual-filter-change` and `manual-sort-change` flow
 
-When `filterFunction` / `sortFunction` is set, table switches that column to manual mode and emits `manual-filter-change` / `manual-sort-change`. You control final dataset in parent component.
+When `@manual-filter-change` / `@manual-sort-change` listeners are passed, table switches to manual mode and emits these events. You control final dataset in parent component.
 
 ```vue
 <script setup lang="ts">
@@ -388,18 +366,8 @@ const allRows = ref<TicketRow[]>([
 const columns: NuxtTableColumn[] = [
   { key: "id", label: "ID", sortable: true },
   { key: "title", label: "Title", sortable: true, filterable: true },
-  {
-    key: "status",
-    label: "Status",
-    filterable: true,
-    filterFunction: () => true,
-  },
-  {
-    key: "priority",
-    label: "Priority",
-    sortable: true,
-    sortFunction: () => 0,
-  },
+  { key: "status", label: "Status", filterable: true },
+  { key: "priority", label: "Priority", sortable: true },
 ];
 
 const manualStatusFilter = ref<string>("");
@@ -463,9 +431,8 @@ function onManualSortChange(payload: NuxtTableManualSortChange) {
 
 Notes:
 
-- In manual mode, the table does not transform rows for that column; you pass already transformed `rows` from outside.
+- In manual mode, the table does not transform rows internally; you pass already transformed `rows` from outside.
 - Use payload `columnKey`, `value`, `direction`, `rows`, and `filters` from events to build server/client-side query logic.
-- `filterFn` remains supported as a legacy alias, but `filterFunction` is preferred.
 
 ### Server-side `manual-filter-change` / `manual-sort-change` example
 
@@ -507,18 +474,8 @@ const query = ref<{
 const columns: NuxtTableColumn[] = [
   { key: "id", label: "ID", sortable: true },
   { key: "name", label: "Name", sortable: true, filterable: true },
-  {
-    key: "status",
-    label: "Status",
-    filterable: true,
-    filterFunction: () => true,
-  },
-  {
-    key: "createdAt",
-    label: "Created",
-    sortable: true,
-    sortFunction: () => 0,
-  },
+  { key: "status", label: "Status", filterable: true },
+  { key: "createdAt", label: "Created", sortable: true },
 ];
 
 async function fetchRows() {
@@ -575,7 +532,7 @@ await fetchRows();
 
 What happens here:
 
-- `filterFunction` and `sortFunction` switch corresponding columns to manual mode.
+- Passing `@manual-filter-change` and `@manual-sort-change` switches the table to manual mode.
 - Table emits `manual-filter-change` / `manual-sort-change` instead of transforming `rows` internally.
 - Parent updates query params, calls API, and passes backend result as new `rows`.
 

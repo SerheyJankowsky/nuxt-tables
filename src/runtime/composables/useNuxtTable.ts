@@ -34,6 +34,10 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
     startX: number;
     startWidth: number;
   } | null>(null);
+  const isManualSortMode = computed(() => Boolean(options.onManualSortChange));
+  const isManualFilterMode = computed(() =>
+    Boolean(options.onManualFilterChange),
+  );
 
   const availableColumnKeys = computed(() =>
     options.columns.value.map((column) => column.key),
@@ -64,8 +68,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
           return true;
         }
 
-        const customFilterFunction = column.filterFunction ?? column.filterFn;
-        if (customFilterFunction) {
+        if (isManualFilterMode.value) {
           return true;
         }
 
@@ -93,9 +96,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
     const sortDirection = sortState.value.direction;
     const directionMultiplier = sortDirection === "asc" ? 1 : -1;
     const accessor = activeColumn.sortKey ?? activeColumn.key;
-    const customSortFunction = activeColumn.sortFunction;
-
-    if (customSortFunction) {
+    if (isManualSortMode.value) {
       return filteredRows.value;
     }
 
@@ -276,7 +277,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
 
     if (!sortState.value || sortState.value.key !== column.key) {
       sortState.value = { key: column.key, direction: "asc" };
-      if (column.sortFunction) {
+      if (isManualSortMode.value) {
         options.onManualSortChange?.({
           columnKey: column.key,
           direction: "asc",
@@ -290,7 +291,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
 
     if (sortState.value.direction === "asc") {
       sortState.value = { key: column.key, direction: "desc" };
-      if (column.sortFunction) {
+      if (isManualSortMode.value) {
         options.onManualSortChange?.({
           columnKey: column.key,
           direction: "desc",
@@ -303,7 +304,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
     }
 
     sortState.value = null;
-    if (column.sortFunction) {
+    if (isManualSortMode.value) {
       options.onManualSortChange?.({
         columnKey: column.key,
         direction: null,
@@ -322,8 +323,7 @@ export function useNuxtTable(options: UseNuxtTableOptions) {
       return;
     }
 
-    const customFilterFunction = column.filterFunction ?? column.filterFn;
-    if (!customFilterFunction) {
+    if (!isManualFilterMode.value) {
       return;
     }
 
